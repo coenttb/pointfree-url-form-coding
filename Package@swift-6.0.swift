@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 
 import PackageDescription
 
@@ -21,7 +21,8 @@ let package = Package(
             name: .urlFormCoding,
             dependencies: []
         )
-    ]
+    ],
+    swiftLanguageModes: [.v6]
 )
 
 extension String { var tests: Self { self + " Tests" } }

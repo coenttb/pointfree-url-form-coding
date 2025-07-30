@@ -1,4 +1,0 @@
-GET http://www.point-free.co
-
-301 Moved Permanently
-Location: http://www.pointfree.co

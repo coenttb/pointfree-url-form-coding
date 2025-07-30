@@ -1,6 +1,0 @@
-GET https://www.pointfree.co
-
-200 OK
-Content-Type: text/html; charset=utf-8
-
-<p>Hello, world</p>

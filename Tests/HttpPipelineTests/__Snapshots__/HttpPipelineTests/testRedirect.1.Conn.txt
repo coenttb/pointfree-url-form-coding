@@ -1,4 +1,0 @@
-GET /
-
-302 Found
-Location: /sign-in

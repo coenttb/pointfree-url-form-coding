@@ -1,5 +1,0 @@
-GET /
-
-302 Found
-Location: /sign-in
-Pass-through: hello!

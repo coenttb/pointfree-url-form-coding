@@ -1,4 +1,0 @@
-▿ Foo
-  - x: 1
-  ▿ ys: 1 element
-    - 1

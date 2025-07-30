@@ -1,8 +1,0 @@
-GET /
-
-401 Unauthorized
-Content-Length: 27
-Content-Type: text/plain
-WWW-Authenticate: Basic
-
-Custom authentication page!
