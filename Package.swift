@@ -20,6 +20,10 @@ let package = Package(
         .target(
             name: .urlFormCoding,
             dependencies: []
+        ),
+        .testTarget(
+            name: .urlFormCoding.tests,
+            dependencies: [.urlFormCoding]
         )
     ]
 )
