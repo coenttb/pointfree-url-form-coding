@@ -52,17 +52,17 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     public private(set) var codingPath: [CodingKey] = []
     public var dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy
     public var dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy
-    public var encodingStrategy: PointFreeFormEncoder.EncodingStrategy
+    public var arrayEncodingStrategy: PointFreeFormEncoder.ArrayEncodingStrategy
     public let userInfo: [CodingUserInfoKey: Any] = [:]
 
     public init(
         dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy = .deferredToData,
         dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy = .deferredToDate,
-        encodingStrategy: PointFreeFormEncoder.EncodingStrategy = .bracketsWithIndices
+        arrayEncodingStrategy: PointFreeFormEncoder.ArrayEncodingStrategy = .bracketsWithIndices
     ) {
         self.dataEncodingStrategy = dataEncodingStrategy
         self.dateEncodingStrategy = dateEncodingStrategy
-        self.encodingStrategy = encodingStrategy
+        self.arrayEncodingStrategy = arrayEncodingStrategy
     }
 
     public func encode<T: Encodable>(_ value: T) throws -> Data {
@@ -71,7 +71,7 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             throw Error.encodingError("No container found", self.codingPath)
         }
 
-        let queryString = serialize(container, strategy: self.encodingStrategy)
+        let queryString = serialize(container, strategy: self.arrayEncodingStrategy)
         return Data(queryString.utf8)
     }
 
@@ -88,7 +88,7 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         let encoder = PointFreeFormEncoder(
             dataEncodingStrategy: self.dataEncodingStrategy,
             dateEncodingStrategy: self.dateEncodingStrategy,
-            encodingStrategy: self.encodingStrategy
+            arrayEncodingStrategy: self.arrayEncodingStrategy
         )
         try value.encode(to: encoder)
         guard let container = encoder.container else {
@@ -105,7 +105,7 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             let encoder = PointFreeFormEncoder(
                 dataEncodingStrategy: self.dataEncodingStrategy,
                 dateEncodingStrategy: self.dateEncodingStrategy,
-                encodingStrategy: self.encodingStrategy
+                arrayEncodingStrategy: self.arrayEncodingStrategy
             )
             try date.encode(to: encoder)
             guard let container = encoder.container else {
@@ -498,13 +498,13 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     /// ## Custom Strategies
     /// You can create custom strategies by providing your own encoding logic:
     /// ```swift
-    /// extension PointFreeFormEncoder.EncodingStrategy {
-    ///     static let customStrategy = EncodingStrategy { container, prefix in
+    /// extension PointFreeFormEncoder.ArrayEncodingStrategy {
+    ///     static let customStrategy = ArrayEncodingStrategy { container, prefix in
     ///         // Your custom encoding logic here
     ///     }
     /// }
     /// ```
-    public struct EncodingStrategy: Sendable {
+    public struct ArrayEncodingStrategy: Sendable {
         internal let encode: @Sendable (Container, String) -> String
         
         /// Creates a custom encoding strategy.
@@ -515,25 +515,25 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         
         /// Accumulate values strategy encodes arrays as repeated keys
         /// Example: tags=swift&tags=ios&tags=server
-        public static let accumulateValues = EncodingStrategy { container, prefix in
+        public static let accumulateValues = ArrayEncodingStrategy { container, prefix in
             serializeWithStrategy(container, prefix: prefix, arrayHandler: .accumulate)
         }
         
         /// Brackets strategy encodes arrays with empty brackets
         /// Example: tags[]=swift&tags[]=ios&tags[]=server
-        public static let brackets = EncodingStrategy { container, prefix in
+        public static let brackets = ArrayEncodingStrategy { container, prefix in
             serializeWithStrategy(container, prefix: prefix, arrayHandler: .brackets)
         }
         
         /// Brackets with indices strategy encodes arrays with indexed brackets
         /// Example: tags[0]=swift&tags[1]=ios&tags[2]=server
-        public static let bracketsWithIndices = EncodingStrategy { container, prefix in
+        public static let bracketsWithIndices = ArrayEncodingStrategy { container, prefix in
             serializeWithStrategy(container, prefix: prefix, arrayHandler: .bracketsWithIndices)
         }
     }
 }
 
-private func serialize(_ container: PointFreeFormEncoder.Container, strategy: PointFreeFormEncoder.EncodingStrategy, prefix: String = "") -> String {
+private func serialize(_ container: PointFreeFormEncoder.Container, strategy: PointFreeFormEncoder.ArrayEncodingStrategy, prefix: String = "") -> String {
     return strategy.encode(container, prefix)
 }
 

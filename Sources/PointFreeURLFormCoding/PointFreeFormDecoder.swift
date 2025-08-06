@@ -46,7 +46,7 @@ import Foundation
 ///
 /// ```swift
 /// let decoder = PointFreeFormDecoder()
-/// decoder.parsingStrategy = .brackets
+/// decoder.arrayParsingStrategy = .brackets
 /// decoder.dateDecodingStrategy = .iso8601
 /// decoder.dataDecodingStrategy = .base64
 /// ```
@@ -69,29 +69,29 @@ public final class PointFreeFormDecoder: Swift.Decoder {
     public private(set) var codingPath: [CodingKey] = []
     public var dataDecodingStrategy: PointFreeFormDecoder.DataDecodingStrategy
     public var dateDecodingStrategy: PointFreeFormDecoder.DateDecodingStrategy
-    public var parsingStrategy: PointFreeFormDecoder.ParsingStrategy
+    public var arrayParsingStrategy: PointFreeFormDecoder.ArrayParsingStrategy
     public let userInfo: [CodingUserInfoKey: Any] = [:]
 
     public init(
         dataDecodingStrategy: PointFreeFormDecoder.DataDecodingStrategy = .deferredToData,
         dateDecodingStrategy: PointFreeFormDecoder.DateDecodingStrategy = .deferredToDate,
-        parsingStrategy: PointFreeFormDecoder.ParsingStrategy = .accumulateValues
+        arrayParsingStrategy: PointFreeFormDecoder.ArrayParsingStrategy = .accumulateValues
     ) {
         self.dataDecodingStrategy = dataDecodingStrategy
         self.dateDecodingStrategy = dateDecodingStrategy
-        self.parsingStrategy = parsingStrategy
+        self.arrayParsingStrategy = arrayParsingStrategy
     }
 
     public func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         let query = String(decoding: data, as: UTF8.self)
-        let container = self.parsingStrategy.parse(query)
+        let container = self.arrayParsingStrategy.parse(query)
         self.containers.append(container)
         defer { self.containers.removeLast() }
         return try T(from: self)
     }
 
     private func unbox(_ container: Container) -> String? {
-        if self.parsingStrategy.handleSingleValue {
+        if self.arrayParsingStrategy.handleSingleValue {
             // For accumulateValues strategy, handle both single values and arrays
             // If it's an array, take the last value; if it's a single value, return it
             return container.values?.last?.value ?? container.value
@@ -166,7 +166,7 @@ public final class PointFreeFormDecoder: Swift.Decoder {
             return UnkeyedContainer(decoder: self, container: container, codingPath: self.codingPath)
         case let .singleValue(value):
             // For strategies like accumulateValues, treat a single value as an array with one element
-            if self.parsingStrategy.handleSingleValue {
+            if self.arrayParsingStrategy.handleSingleValue {
                 let container = [Container.singleValue(value)]
                 return UnkeyedContainer(decoder: self, container: container, codingPath: self.codingPath)
             } else {
@@ -469,7 +469,7 @@ public final class PointFreeFormDecoder: Swift.Decoder {
             decoder.codingPath = self.codingPath
             decoder.dataDecodingStrategy = self.decoder.dataDecodingStrategy
             decoder.dateDecodingStrategy = self.decoder.dateDecodingStrategy
-            decoder.parsingStrategy = self.decoder.parsingStrategy
+            decoder.arrayParsingStrategy = self.decoder.arrayParsingStrategy
             return decoder
         }
     }
@@ -631,7 +631,7 @@ public final class PointFreeFormDecoder: Swift.Decoder {
             decoder.codingPath = self.codingPath
             decoder.dataDecodingStrategy = self.decoder.dataDecodingStrategy
             decoder.dateDecodingStrategy = self.decoder.dateDecodingStrategy
-            decoder.parsingStrategy = self.decoder.parsingStrategy
+            decoder.arrayParsingStrategy = self.decoder.arrayParsingStrategy
             return decoder
         }
     }
@@ -879,7 +879,7 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         }
     }
 
-    /// A strategy for parsing URL form data into containers.
+    /// A strategy for parsing arrays from URL form data.
     ///
     /// You can use one of the built-in strategies or create your own custom strategy.
     ///
@@ -891,14 +891,14 @@ public final class PointFreeFormDecoder: Swift.Decoder {
     /// ## Custom Strategies
     /// You can create custom strategies by providing your own parsing logic:
     /// ```swift
-    /// extension PointFreeFormDecoder.ParsingStrategy {
-    ///     static let customStrategy = ParsingStrategy { query in
+    /// extension PointFreeFormDecoder.ArrayParsingStrategy {
+    ///     static let customStrategy = ArrayParsingStrategy { query in
     ///         // Your custom parsing logic here
     ///         // Return a Container
     ///     }
     /// }
     /// ```
-    public struct ParsingStrategy: Sendable {
+    public struct ArrayParsingStrategy: Sendable {
         internal let parse: @Sendable (String) -> Container
         internal let handleSingleValue: Bool
         
@@ -920,7 +920,7 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         /// given.
         ///
         /// - Note: This parsing strategy is "flat" and cannot decode deeper structures.
-        public static let accumulateValues = ParsingStrategy(
+        public static let accumulateValues = ArrayParsingStrategy(
             parse: PointFreeFormDecoder.accumulateValuesParser,
             handleSingleValue: true
         )
@@ -944,7 +944,7 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         ///
         /// - Note: Unkeyed brackets do not specify collection indices, so they cannot accumulate complex
         ///   structures by using multiple keys. See `bracketsWithIndices` as an alternative parsing strategy.
-        public static let brackets = ParsingStrategy(
+        public static let brackets = ArrayParsingStrategy(
             parse: PointFreeFormDecoder.parse(isArray: { $0.isEmpty })
         )
 
@@ -964,14 +964,14 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         ///
         ///     user[pets][0][id]=1&user[pets][0][name]=Fido
         ///     // Parsed as ["user": ["pets": [["id": "1"], ["name": "Fido"]]]]
-        public static let bracketsWithIndices = ParsingStrategy(
+        public static let bracketsWithIndices = ArrayParsingStrategy(
             parse: PointFreeFormDecoder.parse(isArray: { Int($0) != nil }, sort: true)
         )
         
         /// Creates a custom parsing strategy with a custom function.
         /// This is provided for backward compatibility.
-        public static func custom(_ parseFunction: @escaping @Sendable (String) -> Container) -> ParsingStrategy {
-            return ParsingStrategy(parse: parseFunction)
+        public static func custom(_ parseFunction: @escaping @Sendable (String) -> Container) -> ArrayParsingStrategy {
+            return ArrayParsingStrategy(parse: parseFunction)
         }
     }
 }

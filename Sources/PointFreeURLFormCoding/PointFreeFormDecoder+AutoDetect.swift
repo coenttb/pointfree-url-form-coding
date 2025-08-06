@@ -2,7 +2,7 @@ import Foundation
 
 extension PointFreeFormDecoder {
     /// Attempts to detect the parsing strategy from the encoded data
-    public static func detectStrategy(from data: Data) -> ParsingStrategy? {
+    public static func detectStrategy(from data: Data) -> ArrayParsingStrategy? {
         guard let string = String(data: data, encoding: .utf8) else { return nil }
         
         // Check for bracketsWithIndices pattern: field[0]=value, field[1]=value
@@ -50,7 +50,7 @@ extension PointFreeFormDecoder {
         return PointFreeFormDecoder(
             dataDecodingStrategy: dataDecodingStrategy,
             dateDecodingStrategy: dateDecodingStrategy,
-            parsingStrategy: strategy
+            arrayParsingStrategy: strategy
         )
     }
     

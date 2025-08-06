@@ -50,10 +50,10 @@ struct URLFormCodingRoundTripTests {
     @Test("Basic array round-trip with accumulate values (default)")
     func testBasicArrayRoundTripWithAccumulateValues() throws {
         let encoder = PointFreeFormEncoder(
-            encodingStrategy: .accumulateValues
+            arrayEncodingStrategy: .accumulateValues
         )
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .accumulateValues
+            arrayParsingStrategy: .accumulateValues
         )
         
         let original = SimpleArrayModel(
@@ -71,7 +71,7 @@ struct URLFormCodingRoundTripTests {
     func testOptionalArrayRoundTripWithBracketsWithIndices() throws {
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = OptionalArrayModel(
@@ -92,7 +92,7 @@ struct URLFormCodingRoundTripTests {
     func testMessageRequestRoundTripWithBracketsWithIndices() throws {
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = MessageRequest(
@@ -129,7 +129,7 @@ struct URLFormCodingRoundTripTests {
     func testEmptyArraysRoundTrip() throws {
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = OptionalArrayModel(
@@ -150,7 +150,7 @@ struct URLFormCodingRoundTripTests {
     func testNilArraysRoundTrip() throws {
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = OptionalArrayModel(
@@ -168,7 +168,7 @@ struct URLFormCodingRoundTripTests {
     func testMixedTypesRoundTrip() throws {
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = MixedTypesModel(
@@ -193,7 +193,7 @@ struct URLFormCodingRoundTripTests {
     func testMixedTypesWithNilsRoundTrip() throws {
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = MixedTypesModel(
@@ -253,7 +253,7 @@ struct URLFormCodingRoundTripTests {
         )
         let decoder = PointFreeFormDecoder(
             dateDecodingStrategy: .secondsSince1970,
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let date = Date(timeIntervalSince1970: 1234567890)
@@ -284,7 +284,7 @@ struct URLFormCodingRoundTripTests {
         
         let encoder = PointFreeFormEncoder()
         let decoder = PointFreeFormDecoder(
-            parsingStrategy: .bracketsWithIndices
+            arrayParsingStrategy: .bracketsWithIndices
         )
         
         let original = NestedModel(

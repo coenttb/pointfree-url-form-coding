@@ -38,7 +38,7 @@ struct OptionalArrayDecodingTests {
     // MARK: - Test Helpers
     
     let encoder = PointFreeFormEncoder()
-    let decoder = PointFreeFormDecoder(parsingStrategy: .bracketsWithIndices)
+    let decoder = PointFreeFormDecoder(arrayParsingStrategy: .bracketsWithIndices)
     
     // MARK: - Tests
     

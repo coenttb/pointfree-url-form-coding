@@ -109,7 +109,7 @@ struct FormDecoderTests {
         @Test("Decodes nested objects with brackets strategy")
         func testDecodesNestedObjectsWithBracketsStrategy() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
 
             let queryString = "name=Alice&profile[bio]=Developer&profile[website]=https%3A//example.com"
             let data = Data(queryString.utf8)
@@ -124,7 +124,7 @@ struct FormDecoderTests {
         @Test("Handles nested objects with nil optionals")
         func testHandlesNestedObjectsWithNilOptionals() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
 
             let queryString = "name=Bob&profile[bio]=Designer"
             let data = Data(queryString.utf8)
@@ -152,7 +152,7 @@ struct FormDecoderTests {
             }
 
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
 
             let queryString = "name=Charlie&profile[info][bio]=Deep%20Developer"
             let data = Data(queryString.utf8)
@@ -172,7 +172,7 @@ struct FormDecoderTests {
         @Test("Decodes arrays with accumulate values strategy")
         func testDecodesArraysWithAccumulateValuesStrategy() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .accumulateValues
+            decoder.arrayParsingStrategy = .accumulateValues
 
             let queryString = "name=Charlie&tags=swift&tags=ios&tags=developer&scores=85&scores=92&scores=78"
             let data = Data(queryString.utf8)
@@ -187,7 +187,7 @@ struct FormDecoderTests {
         @Test("Decodes arrays with brackets strategy")
         func testDecodesArraysWithBracketsStrategy() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
 
             let queryString = "name=Diana&tags[]=swift&tags[]=ios&tags[]=developer&scores[]=85&scores[]=92&scores[]=78"
             let data = Data(queryString.utf8)
@@ -202,7 +202,7 @@ struct FormDecoderTests {
         @Test("Decodes arrays with bracketsWithIndices strategy")
         func testDecodesArraysWithBracketsWithIndicesStrategy() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .bracketsWithIndices
+            decoder.arrayParsingStrategy = .bracketsWithIndices
 
             let queryString = "name=Eve&tags[0]=swift&tags[1]=ios&tags[2]=developer&scores[0]=85&scores[1]=92&scores[2]=78"
             let data = Data(queryString.utf8)
@@ -217,7 +217,7 @@ struct FormDecoderTests {
         @Test("Handles empty arrays")
         func testHandlesEmptyArrays() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .accumulateValues
+            decoder.arrayParsingStrategy = .accumulateValues
 
             let queryString = "name=Frank"
             let data = Data(queryString.utf8)
@@ -235,7 +235,7 @@ struct FormDecoderTests {
         @Test("Handles arrays with single element")
         func testHandlesArraysWithSingleElement() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .accumulateValues
+            decoder.arrayParsingStrategy = .accumulateValues
 
             let queryString = "name=Grace&tags=admin&scores=100"
             let data = Data(queryString.utf8)
@@ -250,7 +250,7 @@ struct FormDecoderTests {
         @Test("Handles out-of-order indexed arrays")
         func testHandlesOutOfOrderIndexedArrays() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .bracketsWithIndices
+            decoder.arrayParsingStrategy = .bracketsWithIndices
 
             let queryString = "name=Henry&tags[2]=developer&tags[0]=swift&tags[1]=ios&scores[1]=92&scores[0]=85&scores[2]=78"
             let data = Data(queryString.utf8)
@@ -502,7 +502,7 @@ struct FormDecoderTests {
         @Test("AccumulateValues strategy works correctly")
         func testAccumulateValuesStrategyWorksCorrectly() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .accumulateValues
+            decoder.arrayParsingStrategy = .accumulateValues
 
             let queryString = "name=Sam&tags=swift&tags=ios&tags=macos&scores=95&scores=88&scores=92"
             let data = Data(queryString.utf8)
@@ -517,7 +517,7 @@ struct FormDecoderTests {
         @Test("Brackets strategy works correctly")
         func testBracketsStrategyWorksCorrectly() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
 
             let queryString = "name=Tina&profile[bio]=Developer&profile[website]=https%3A//tina.dev"
             let data = Data(queryString.utf8)
@@ -532,7 +532,7 @@ struct FormDecoderTests {
         @Test("BracketsWithIndices strategy works correctly")
         func testBracketsWithIndicesStrategyWorksCorrectly() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .bracketsWithIndices
+            decoder.arrayParsingStrategy = .bracketsWithIndices
 
             let queryString = "name=Uma&tags[0]=swift&tags[1]=vapor&scores[0]=95&scores[1]=88"
             let data = Data(queryString.utf8)
@@ -549,7 +549,7 @@ struct FormDecoderTests {
             let decoder = PointFreeFormDecoder()
 
             // Simple custom strategy - just pass through to test that custom function is called
-            decoder.parsingStrategy = .custom { query in
+            decoder.arrayParsingStrategy = .custom { query in
                 // Just use the default accumulate values parsing, but demonstrate custom strategy works
                 var params: [String: PointFreeFormDecoder.Container] = [:]
                 let pairs = query.split(separator: "&")
@@ -692,7 +692,7 @@ struct FormDecoderTests {
         @Test("Handles deeply nested bracket injection attempts")
         func testHandlesDeeplyNestedBracketInjectionAttempts() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
 
             // Test with reasonable nesting depth to avoid stack overflow
             // while still testing security against deeply nested structures
@@ -761,7 +761,7 @@ struct FormDecoderTests {
         @Test("Handles duplicate keys correctly based on strategy")
         func testHandlesDuplicateKeysCorrectlyBasedOnStrategy() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .accumulateValues
+            decoder.arrayParsingStrategy = .accumulateValues
 
             let queryString = "name=First&name=Second&name=Third&age=25&isActive=true"
             let data = Data(queryString.utf8)
@@ -807,7 +807,7 @@ struct FormDecoderTests {
         func testRoundTripsArraysWithMatchingStrategies() throws {
             let encoder = PointFreeFormEncoder()
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .bracketsWithIndices
+            decoder.arrayParsingStrategy = .bracketsWithIndices
 
             let original = UserWithArrays(
                 name: "Array User",
@@ -865,7 +865,7 @@ struct FormDecoderTests {
 
         @Test("Decodes large query strings efficiently")
         func testDecodesLargeQueryStringsEfficiently() throws {
-            let decoder = PointFreeFormDecoder(parsingStrategy: .accumulateValues)
+            let decoder = PointFreeFormDecoder(arrayParsingStrategy: .accumulateValues)
 
             // Create a large query string with many repeated keys
             var components: [String] = ["name=Performance%20Test"]
@@ -886,7 +886,7 @@ struct FormDecoderTests {
 
         @Test("Parses complex nested structures efficiently")
         func testParsesComplexNestedStructuresEfficiently() throws {
-            let decoder = PointFreeFormDecoder(parsingStrategy: .brackets)
+            let decoder = PointFreeFormDecoder(arrayParsingStrategy: .brackets)
 
             // Create complex nested structure
             var components: [String] = ["name=Complex%20Test"]

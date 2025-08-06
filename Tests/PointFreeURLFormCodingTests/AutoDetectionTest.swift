@@ -105,7 +105,7 @@ struct AutoDetectionTest {
         )
         
         // Test with bracketsWithIndices encoding
-        let encoder1 = PointFreeFormEncoder(encodingStrategy: .bracketsWithIndices)
+        let encoder1 = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
         let encoded1 = try encoder1.encode(original)
         let decoded1 = try PointFreeFormDecoder.decodeWithAutoDetection(Model.self, from: encoded1)
         #expect(decoded1 == original)
@@ -119,7 +119,7 @@ struct AutoDetectionTest {
         }
         
         let simple = SimpleModel(id: 42, name: "Test")
-        let encoder2 = PointFreeFormEncoder(encodingStrategy: .accumulateValues)
+        let encoder2 = PointFreeFormEncoder(arrayEncodingStrategy: .accumulateValues)
         let encoded2 = try encoder2.encode(simple)
         let decoded2 = try PointFreeFormDecoder.decodeWithAutoDetection(SimpleModel.self, from: encoded2)
         #expect(decoded2 == simple)

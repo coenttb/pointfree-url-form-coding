@@ -54,7 +54,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes simple string array with brackets")
         func testEncodesSimpleStringArray() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let model = SimpleArrayModel(tags: ["swift", "ios", "server"])
             let data = try encoder.encode(model)
@@ -75,7 +75,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes multiple arrays with brackets")
         func testEncodesMultipleArrays() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let model = MultipleArraysModel(
                 tags: ["swift", "ios"],
@@ -101,7 +101,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes empty arrays correctly")
         func testEncodesEmptyArrays() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let model = SimpleArrayModel(tags: [])
             let data = try encoder.encode(model)
@@ -113,7 +113,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes single element array with brackets")
         func testEncodesSingleElementArray() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let model = SimpleArrayModel(tags: ["swift"])
             let data = try encoder.encode(model)
@@ -125,7 +125,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes number arrays with brackets")
         func testEncodesNumberArrays() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let model = NumberArrayModel(
                 numbers: [1, 2, 3],
@@ -148,7 +148,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes nested objects with arrays using brackets")
         func testEncodesNestedObjectsWithArrays() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let model = NestedObjectWithArrays(
                 user: NestedObjectWithArrays.User(
@@ -175,7 +175,7 @@ struct BracketsStrategyEncodingTests {
         @Test("Decodes simple array with brackets")
         func testDecodesSimpleArrayWithBrackets() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let queryString = "tags[]=swift&tags[]=ios&tags[]=server"
             let data = queryString.data(using: .utf8)!
@@ -188,7 +188,7 @@ struct BracketsStrategyEncodingTests {
         @Test("Decodes multiple arrays with brackets")
         func testDecodesMultipleArraysWithBrackets() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let queryString = "cc[]=admin%40example.com&tags[]=swift&tags[]=ios&to[]=user1%40example.com&to[]=user2%40example.com"
             let data = queryString.data(using: .utf8)!
@@ -203,7 +203,7 @@ struct BracketsStrategyEncodingTests {
         @Test("Decodes single element array with brackets")
         func testDecodesSingleElementArrayWithBrackets() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let queryString = "tags[]=swift"
             let data = queryString.data(using: .utf8)!
@@ -216,7 +216,7 @@ struct BracketsStrategyEncodingTests {
         @Test("Decodes number arrays with brackets")
         func testDecodesNumberArraysWithBrackets() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let queryString = "numbers[]=1&numbers[]=2&numbers[]=3&scores[]=95.5&scores[]=87.3&scores[]=92"
             let data = queryString.data(using: .utf8)!
@@ -230,7 +230,7 @@ struct BracketsStrategyEncodingTests {
         @Test("Decodes nested objects with arrays using brackets")
         func testDecodesNestedObjectsWithArrays() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let queryString = "user[emails][]=john%40example.com&user[emails][]=john.doe%40example.com&user[name]=John"
             let data = queryString.data(using: .utf8)!
@@ -249,10 +249,10 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Simple array round-trips correctly")
         func testSimpleArrayRoundTrip() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let original = SimpleArrayModel(tags: ["swift", "ios", "server"])
             
@@ -264,10 +264,10 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Multiple arrays round-trip correctly")
         func testMultipleArraysRoundTrip() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let original = MultipleArraysModel(
                 tags: ["swift", "ios", "vapor"],
@@ -283,10 +283,10 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Number arrays round-trip correctly")
         func testNumberArraysRoundTrip() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let original = NumberArrayModel(
                 numbers: [42, 13, 7, 99],
@@ -301,10 +301,10 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Nested objects with arrays round-trip correctly")
         func testNestedObjectsWithArraysRoundTrip() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             let original = NestedObjectWithArrays(
                 user: NestedObjectWithArrays.User(
@@ -328,7 +328,7 @@ struct BracketsStrategyEncodingTests {
         @Test("Decodes PHP/Rails style form data")
         func testDecodesPHPRailsStyleFormData() throws {
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .brackets
+            decoder.arrayParsingStrategy = .brackets
             
             // This is the format commonly used by PHP and Rails
             let queryString = "user[name]=John%20Doe&user[emails][]=john%40example.com&user[emails][]=doe%40example.com&tags[]=php&tags[]=rails&tags[]=web"
@@ -353,7 +353,7 @@ struct BracketsStrategyEncodingTests {
         
         @Test("Encodes in Mailgun-compatible format")
         func testEncodesMailgunCompatibleFormat() throws {
-            let encoder = PointFreeFormEncoder(encodingStrategy: .brackets)
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .brackets)
             
             struct MailgunMessage: Codable {
                 let from: String

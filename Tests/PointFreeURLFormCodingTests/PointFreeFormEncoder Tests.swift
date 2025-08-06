@@ -385,7 +385,7 @@ struct FormEncoderTests {
         func testArraysRoundTripCorrectly() throws {
             let encoder = PointFreeFormEncoder()
             let decoder = PointFreeFormDecoder()
-            decoder.parsingStrategy = .bracketsWithIndices // Use compatible parsing strategy
+            decoder.arrayParsingStrategy = .bracketsWithIndices // Use compatible parsing strategy
 
             let original = UserWithArrays(
                 name: "Penny",
