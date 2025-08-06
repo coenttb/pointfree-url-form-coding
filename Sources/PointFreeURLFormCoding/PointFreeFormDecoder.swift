@@ -209,8 +209,25 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         return SingleValueContainer(decoder: self, container: self.container)
     }
 
-    public enum Error: Swift.Error {
+    public enum Error: Swift.Error, CustomStringConvertible {
         case decodingError(String, [CodingKey])
+        
+        public var description: String {
+            switch self {
+            case let .decodingError(message, path):
+                let pathString = path.map { $0.stringValue }.joined(separator: ".")
+                let location = pathString.isEmpty ? "" : " at path '\(pathString)'"
+                
+                // Add helpful hints for common issues
+                if message.contains("Expected Array") || message.contains("Expected unkeyed") {
+                    return "\(message)\(location). Hint: This might be a parsing strategy mismatch. Arrays encoded with 'bracketsWithIndices' (tags[0]=value) need to be decoded with the same strategy, not 'accumulateValues' (tags=value)."
+                } else if message.contains("got nil") && (pathString.contains("tags") || pathString.contains("items")) {
+                    return "\(message)\(location). Hint: Array fields may require matching encoding/decoding strategies. Check if encoder uses 'bracketsWithIndices' and decoder uses the same."
+                } else {
+                    return "\(message)\(location)"
+                }
+            }
+        }
     }
 
     struct KeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {

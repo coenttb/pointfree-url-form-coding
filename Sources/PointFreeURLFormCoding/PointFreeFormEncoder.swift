@@ -145,8 +145,17 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         return container
     }
 
-    public enum Error: Swift.Error {
+    public enum Error: Swift.Error, CustomStringConvertible {
         case encodingError(String, [CodingKey])
+        
+        public var description: String {
+            switch self {
+            case let .encodingError(message, path):
+                let pathString = path.map { $0.stringValue }.joined(separator: ".")
+                let location = pathString.isEmpty ? "" : " at path '\(pathString)'"
+                return "\(message)\(location)"
+            }
+        }
     }
 
     struct KeyedContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
