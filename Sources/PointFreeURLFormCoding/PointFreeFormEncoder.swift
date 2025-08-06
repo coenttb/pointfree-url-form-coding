@@ -27,11 +27,15 @@ import Foundation
 /// - **Date encoding**: ISO8601, seconds since 1970, milliseconds, custom formats
 /// - **Data encoding**: Base64 or custom strategies
 /// - **Array encoding**: Multiple strategies for handling arrays
+///   - `.accumulateValues`: field=value1&field=value2
+///   - `.brackets`: field[]=value1&field[]=value2 (PHP/Rails style)
+///   - `.bracketsWithIndices`: field[0]=value1&field[1]=value2
 ///
 /// ```swift
 /// let encoder = PointFreeFormEncoder()
 /// encoder.dateEncodingStrategy = .iso8601
 /// encoder.dataEncodingStrategy = .base64
+/// encoder.encodingStrategy = .brackets // For PHP/Rails compatibility
 /// ```
 ///
 /// ## Advanced Features
@@ -46,9 +50,9 @@ import Foundation
 public final class PointFreeFormEncoder: Swift.Encoder {
     private var container: Container?
     public private(set) var codingPath: [CodingKey] = []
-    public let dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy
-    public let dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy
-    public let encodingStrategy: EncodingStrategy
+    public var dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy
+    public var dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy
+    public var encodingStrategy: EncodingStrategy
     public let userInfo: [CodingUserInfoKey: Any] = [:]
 
     public init(
@@ -393,6 +397,10 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         /// Example: tags=swift&tags=ios&tags=server
         case accumulateValues
         
+        /// Brackets strategy encodes arrays with empty brackets
+        /// Example: tags[]=swift&tags[]=ios&tags[]=server
+        case brackets
+        
         /// Brackets with indices strategy encodes arrays with indexed brackets
         /// Example: tags[0]=swift&tags[1]=ios&tags[2]=server
         case bracketsWithIndices
@@ -408,7 +416,7 @@ private func serialize(_ container: PointFreeFormEncoder.Container, strategy: Po
             case .accumulateValues:
                 // For accumulate values, don't add brackets for nested objects
                 newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
-            case .bracketsWithIndices:
+            case .brackets, .bracketsWithIndices:
                 newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
             }
             return serialize(value, strategy: strategy, prefix: newPrefix)
@@ -420,6 +428,13 @@ private func serialize(_ container: PointFreeFormEncoder.Container, strategy: Po
             // For accumulate values, repeat the key for each value
             return array.map { value in
                 serialize(value, strategy: strategy, prefix: prefix)
+            }.joined(separator: "&")
+            
+        case .brackets:
+            // For brackets, use empty bracket notation
+            return array.map { value in
+                let newPrefix = "\(prefix)[]"
+                return serialize(value, strategy: strategy, prefix: newPrefix)
             }.joined(separator: "&")
             
         case .bracketsWithIndices:
