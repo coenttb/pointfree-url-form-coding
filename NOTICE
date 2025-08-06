@@ -24,9 +24,19 @@ Core Improvements:
 - Improved error messages with CustomStringConvertible conformance
 - Added strategy auto-detection functionality
 - Added PointFreeFormDecoder.decodeWithAutoDetection for automatic strategy detection
+- Added .brackets array encoding/parsing strategy for PHP/Rails/Mailgun compatibility
+- Converted all strategies to extensible struct-based implementations:
+  - EncodingStrategy → ArrayEncodingStrategy (struct with closure)
+  - ParsingStrategy → ArrayParsingStrategy (struct with closure)
+  - DataEncodingStrategy → struct with closure
+  - DataDecodingStrategy → struct with closure
+  - DateEncodingStrategy → struct with closure
+  - DateDecodingStrategy → struct with closure
+- Enabled third-party custom strategies through public initializers
+- Improved API clarity by renaming strategies to match their purpose
 
 Test Suite:
-- Comprehensive test suite with 132+ tests covering:
+- Comprehensive test suite with 149 tests covering:
   - Optional array decoding tests
   - Round-trip encoding/decoding tests
   - Strategy mismatch tests
