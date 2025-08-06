@@ -826,9 +826,24 @@ private func parse(isArray: @escaping (String) -> Bool, sort: Bool = false) -> (
                 values.append(valueContainer)
                 params[key] = .unkeyed(values)
             } else if isArray(path[1]) {
-                var values = PointFreeFormDecoder.Container.unkeyed(params[key]?.values ?? [])
-                parseHelp(&values, Array(path[1...]), value)
-                params[key] = values
+                // Handle indexed arrays properly
+                let index = Int(path[1]) ?? 0
+                var values = params[key]?.values ?? []
+                
+                // Expand array if needed
+                while values.count <= index {
+                    values.append(.keyed([:]))
+                }
+                
+                // If we have more path components, recurse into the specific index
+                if path.count > 2 {
+                    parseHelp(&values[index], Array(path[2...]), value)
+                } else {
+                    // This is the final value
+                    values[index] = .singleValue(value)
+                }
+                
+                params[key] = .unkeyed(values)
             } else {
                 var values = PointFreeFormDecoder.Container.keyed(params[key]?.params ?? [:])
                 parseHelp(&values, Array(path[1...]), value)
@@ -841,9 +856,16 @@ private func parse(isArray: @escaping (String) -> Bool, sort: Bool = false) -> (
                 let valueContainer = PointFreeFormDecoder.Container.singleValue(value)
                 values.append(valueContainer)
             } else if isArray(path[1]) {
-                var nestedValues = PointFreeFormDecoder.Container.unkeyed([])
-                parseHelp(&nestedValues, Array(path[1...]), value)
-                values.append(nestedValues)
+                // For indexed arrays, we need to ensure we have enough elements
+                let index = Int(path[1]) ?? 0
+                
+                // Expand array if needed
+                while values.count <= index {
+                    values.append(.keyed([:]))
+                }
+                
+                // Recursively parse into the element at the specific index
+                parseHelp(&values[index], Array(path[2...]), value)
             } else {
                 var params = PointFreeFormDecoder.Container.keyed([:])
                 parseHelp(&params, Array(path[1...]), value)
