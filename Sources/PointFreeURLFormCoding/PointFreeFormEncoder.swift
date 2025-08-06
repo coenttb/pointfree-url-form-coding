@@ -98,8 +98,10 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     }
 
     private func box(_ date: Date) throws -> Container {
-        switch self.dateEncodingStrategy {
-        case .deferredToDate:
+        // Check if using deferredToDate by looking for the special marker
+        let result = self.dateEncodingStrategy.encode(date)
+        
+        if result == "__DEFERRED_TO_DATE__" {
             let encoder = PointFreeFormEncoder(
                 dataEncodingStrategy: self.dataEncodingStrategy,
                 dateEncodingStrategy: self.dateEncodingStrategy,
@@ -110,16 +112,8 @@ public final class PointFreeFormEncoder: Swift.Encoder {
                 throw Error.encodingError("No container found", encoder.codingPath)
             }
             return container
-        case .secondsSince1970:
-            return .singleValue(String(date.timeIntervalSince1970))
-        case .millisecondsSince1970:
-            return .singleValue(String(date.timeIntervalSince1970 * 1000))
-        case .iso8601:
-            return .singleValue(iso8601DateFormatter.string(from: date))
-        case let .formatted(formatter):
-            return .singleValue(formatter.string(from: date))
-        case let .custom(strategy):
-            return .singleValue(strategy(date))
+        } else {
+            return .singleValue(result)
         }
     }
 
@@ -395,13 +389,68 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         }
     }
 
-    public enum DateEncodingStrategy {
-        case deferredToDate
-        case secondsSince1970
-        case millisecondsSince1970
-        case iso8601
-        case formatted(DateFormatter)
-        case custom((Date) -> String)
+    /// A strategy for encoding Date values in URL form data.
+    ///
+    /// You can use one of the built-in strategies or create your own custom strategy.
+    ///
+    /// ## Built-in Strategies
+    /// - ``deferredToDate``: Uses Date's default Codable implementation
+    /// - ``secondsSince1970``: Encodes dates as seconds since 1970
+    /// - ``millisecondsSince1970``: Encodes dates as milliseconds since 1970
+    /// - ``iso8601``: Encodes dates in ISO8601 format
+    /// - ``formatted(_:)``: Encodes dates using a custom DateFormatter
+    ///
+    /// ## Custom Strategies
+    /// You can create custom strategies by providing your own encoding logic:
+    /// ```swift
+    /// extension PointFreeFormEncoder.DateEncodingStrategy {
+    ///     static let yearOnly = DateEncodingStrategy { date in
+    ///         let formatter = DateFormatter()
+    ///         formatter.dateFormat = "yyyy"
+    ///         return formatter.string(from: date)
+    ///     }
+    /// }
+    /// ```
+    public struct DateEncodingStrategy: Sendable {
+        internal let encode: @Sendable (Date) -> String
+        
+        /// Creates a custom date encoding strategy.
+        /// - Parameter encode: A closure that takes a Date and returns the encoded string.
+        public init(encode: @escaping @Sendable (Date) -> String) {
+            self.encode = encode
+        }
+        
+        /// Defers to Date's default Codable implementation
+        public static let deferredToDate = DateEncodingStrategy { _ in
+            "__DEFERRED_TO_DATE__" // Special marker for deferred encoding
+        }
+        
+        /// Encodes dates as seconds since 1970
+        public static let secondsSince1970 = DateEncodingStrategy { date in
+            String(date.timeIntervalSince1970)
+        }
+        
+        /// Encodes dates as milliseconds since 1970
+        public static let millisecondsSince1970 = DateEncodingStrategy { date in
+            String(date.timeIntervalSince1970 * 1000)
+        }
+        
+        /// Encodes dates in ISO8601 format
+        public static let iso8601 = DateEncodingStrategy { date in
+            iso8601DateFormatter.string(from: date)
+        }
+        
+        /// Encodes dates using a custom DateFormatter
+        public static func formatted(_ formatter: DateFormatter) -> DateEncodingStrategy {
+            DateEncodingStrategy { date in
+                formatter.string(from: date)
+            }
+        }
+        
+        /// Creates a custom date encoding strategy
+        public static func custom(_ strategy: @escaping @Sendable (Date) -> String) -> DateEncodingStrategy {
+            DateEncodingStrategy(encode: strategy)
+        }
     }
 
     public enum Container {

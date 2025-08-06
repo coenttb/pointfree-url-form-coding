@@ -118,37 +118,12 @@ public final class PointFreeFormDecoder: Swift.Decoder {
             throw Error.decodingError("Expected string date, got \(value)", self.codingPath)
         }
 
-        switch self.dateDecodingStrategy {
-        case .deferredToDate:
+        // Decode the date using the strategy
+        guard let date = self.dateDecodingStrategy.decode(string) else {
+            // If decode returns nil, it means we should use deferredToDate
             return try Date(from: self)
-        case .secondsSince1970:
-            guard let date = Double(string).map(Date.init(timeIntervalSince1970:)) else {
-                throw Error.decodingError("Expected seconds, got \(string)", self.codingPath)
-            }
-            return date
-        case .millisecondsSince1970:
-            guard let date = Double(string).map({ Date(timeIntervalSince1970: $0 / 1000) }) else {
-                throw Error.decodingError("Expected milliseconds, got \(string)", self.codingPath)
-            }
-            return date
-        case .iso8601:
-            let someDate = iso8601DateFormatter.date(from: string)
-            ?? iso8601DateFormatterWithoutMilliseconds.date(from: string)
-            guard let date = someDate else {
-                throw Error.decodingError("Expected ISO 8601 date string, got \(string)", self.codingPath)
-            }
-            return date
-        case let .formatted(formatter):
-            guard let date = formatter.date(from: string) else {
-                throw Error.decodingError("Expected \(String(describing: formatter.dateFormat)), got \(string)", self.codingPath)
-            }
-            return date
-        case let .custom(strategy):
-            guard let data = strategy(string) else {
-                throw Error.decodingError("Failed strategy when decoding data from \(string)", self.codingPath)
-            }
-            return data
         }
+        return date
     }
 
     private func unbox<T: Decodable>(_ value: Container, as type: T.Type) throws -> T {
@@ -804,13 +779,71 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         }
     }
 
-    public enum DateDecodingStrategy {
-        case deferredToDate
-        case secondsSince1970
-        case millisecondsSince1970
-        case iso8601
-        case formatted(DateFormatter)
-        case custom((String) -> Date?)
+    /// A strategy for decoding Date values from URL form data.
+    ///
+    /// You can use one of the built-in strategies or create your own custom strategy.
+    ///
+    /// ## Built-in Strategies
+    /// - ``deferredToDate``: Uses Date's default Codable implementation
+    /// - ``secondsSince1970``: Decodes dates as seconds since 1970
+    /// - ``millisecondsSince1970``: Decodes dates as milliseconds since 1970
+    /// - ``iso8601``: Decodes dates from ISO8601 format
+    /// - ``formatted(_:)``: Decodes dates using a custom DateFormatter
+    ///
+    /// ## Custom Strategies
+    /// You can create custom strategies by providing your own decoding logic:
+    /// ```swift
+    /// extension PointFreeFormDecoder.DateDecodingStrategy {
+    ///     static let yearOnly = DateDecodingStrategy { string in
+    ///         let formatter = DateFormatter()
+    ///         formatter.dateFormat = "yyyy"
+    ///         return formatter.date(from: string)
+    ///     }
+    /// }
+    /// ```
+    public struct DateDecodingStrategy: Sendable {
+        internal let decode: @Sendable (String) -> Date?
+        
+        /// Creates a custom date decoding strategy.
+        /// - Parameter decode: A closure that takes a string and returns the decoded Date.
+        public init(decode: @escaping @Sendable (String) -> Date?) {
+            self.decode = decode
+        }
+        
+        /// Defers to Date's default Codable implementation
+        public static let deferredToDate = DateDecodingStrategy { _ in
+            nil // Signal to use deferred implementation
+        }
+        
+        /// Decodes dates as seconds since 1970
+        public static let secondsSince1970 = DateDecodingStrategy { string in
+            guard let interval = Double(string) else { return nil }
+            return Date(timeIntervalSince1970: interval)
+        }
+        
+        /// Decodes dates as milliseconds since 1970
+        public static let millisecondsSince1970 = DateDecodingStrategy { string in
+            guard let milliseconds = Double(string) else { return nil }
+            return Date(timeIntervalSince1970: milliseconds / 1000)
+        }
+        
+        /// Decodes dates from ISO8601 format
+        public static let iso8601 = DateDecodingStrategy { string in
+            iso8601DateFormatter.date(from: string) 
+            ?? iso8601DateFormatterWithoutMilliseconds.date(from: string)
+        }
+        
+        /// Decodes dates using a custom DateFormatter
+        public static func formatted(_ formatter: DateFormatter) -> DateDecodingStrategy {
+            DateDecodingStrategy { string in
+                formatter.date(from: string)
+            }
+        }
+        
+        /// Creates a custom date decoding strategy
+        public static func custom(_ strategy: @escaping @Sendable (String) -> Date?) -> DateDecodingStrategy {
+            DateDecodingStrategy(decode: strategy)
+        }
     }
 
     public enum Container {
