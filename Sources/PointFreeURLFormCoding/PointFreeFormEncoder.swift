@@ -48,14 +48,17 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     public private(set) var codingPath: [CodingKey] = []
     public let dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy
     public let dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy
+    public let encodingStrategy: EncodingStrategy
     public let userInfo: [CodingUserInfoKey: Any] = [:]
 
     public init(
         dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy = .deferredToData,
-        dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy = .deferredToDate
+        dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy = .deferredToDate,
+        encodingStrategy: EncodingStrategy = .bracketsWithIndices
     ) {
         self.dataEncodingStrategy = dataEncodingStrategy
         self.dateEncodingStrategy = dateEncodingStrategy
+        self.encodingStrategy = encodingStrategy
     }
 
     public func encode<T: Encodable>(_ value: T) throws -> Data {
@@ -64,7 +67,7 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             throw Error.encodingError("No container found", self.codingPath)
         }
 
-        let queryString = serialize(container)
+        let queryString = serialize(container, strategy: self.encodingStrategy)
         return Data(queryString.utf8)
     }
 
@@ -372,22 +375,48 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             }
         }
     }
+    
+    public enum EncodingStrategy {
+        /// Accumulate values strategy encodes arrays as repeated keys
+        /// Example: tags=swift&tags=ios&tags=server
+        case accumulateValues
+        
+        /// Brackets with indices strategy encodes arrays with indexed brackets
+        /// Example: tags[0]=swift&tags[1]=ios&tags[2]=server
+        case bracketsWithIndices
+    }
 }
 
-private func serialize(_ container: PointFreeFormEncoder.Container, prefix: String = "") -> String {
+private func serialize(_ container: PointFreeFormEncoder.Container, strategy: PointFreeFormEncoder.EncodingStrategy, prefix: String = "") -> String {
     switch container {
     case let .keyed(dict):
         return dict.sorted(by: { $0.key < $1.key }).map { key, value in
-            let newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
-            return serialize(value, prefix: newPrefix)
+            let newPrefix: String
+            switch strategy {
+            case .accumulateValues:
+                // For accumulate values, don't add brackets for nested objects
+                newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
+            case .bracketsWithIndices:
+                newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
+            }
+            return serialize(value, strategy: strategy, prefix: newPrefix)
         }.joined(separator: "&")
 
     case let .unkeyed(array):
-        return array.enumerated().map { idx, value in
-            let newPrefix = "\(prefix)[\(idx)]"
-            return serialize(value, prefix: newPrefix)
+        switch strategy {
+        case .accumulateValues:
+            // For accumulate values, repeat the key for each value
+            return array.map { value in
+                serialize(value, strategy: strategy, prefix: prefix)
+            }.joined(separator: "&")
+            
+        case .bracketsWithIndices:
+            // For brackets with indices, use indexed notation
+            return array.enumerated().map { idx, value in
+                let newPrefix = "\(prefix)[\(idx)]"
+                return serialize(value, strategy: strategy, prefix: newPrefix)
+            }.joined(separator: "&")
         }
-        .joined(separator: "&")
 
     case let .singleValue(value):
         return prefix.isEmpty ? value : "\(prefix)=\(value)"

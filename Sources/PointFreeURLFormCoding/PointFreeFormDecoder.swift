@@ -301,66 +301,107 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         
         func decodeIfPresent(_ type: Bool.Type, forKey key: Key) throws -> Bool? {
             guard self.contains(key) else { return nil }
+            // Check if the value is empty
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Bool.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Int.Type, forKey key: Key) throws -> Int? {
             guard self.contains(key) else { return nil }
+            // Check if the value is empty (for cases like age=)
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Int.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Int8.Type, forKey key: Key) throws -> Int8? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Int8.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Int16.Type, forKey key: Key) throws -> Int16? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Int16.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Int32.Type, forKey key: Key) throws -> Int32? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Int32.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Int64.Type, forKey key: Key) throws -> Int64? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Int64.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: UInt.Type, forKey key: Key) throws -> UInt? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(UInt.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: UInt8.Type, forKey key: Key) throws -> UInt8? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(UInt8.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: UInt16.Type, forKey key: Key) throws -> UInt16? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(UInt16.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: UInt32.Type, forKey key: Key) throws -> UInt32? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(UInt32.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: UInt64.Type, forKey key: Key) throws -> UInt64? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(UInt64.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Float.Type, forKey key: Key) throws -> Float? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Float.self, forKey: key)
         }
         
         func decodeIfPresent(_ type: Double.Type, forKey key: Key) throws -> Double? {
             guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
             return try self.decode(Double.self, forKey: key)
         }
         
