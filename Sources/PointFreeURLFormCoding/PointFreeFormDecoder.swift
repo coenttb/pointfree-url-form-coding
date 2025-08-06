@@ -84,23 +84,18 @@ public final class PointFreeFormDecoder: Swift.Decoder {
 
     public func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         let query = String(decoding: data, as: UTF8.self)
-        let container: Container
-        switch self.parsingStrategy {
-        case .accumulateValues:
-            container = accumulateValues(query)
-        case let .custom(strategy):
-            container = strategy(query)
-        }
+        let container = self.parsingStrategy.parse(query)
         self.containers.append(container)
         defer { self.containers.removeLast() }
         return try T(from: self)
     }
 
     private func unbox(_ container: Container) -> String? {
-        switch self.parsingStrategy {
-        case .accumulateValues:
-            return container.values?.last?.value
-        case .custom:
+        if self.parsingStrategy.handleSingleValue {
+            // For accumulateValues strategy, handle both single values and arrays
+            // If it's an array, take the last value; if it's a single value, return it
+            return container.values?.last?.value ?? container.value
+        } else {
             return container.value
         }
     }
@@ -199,10 +194,20 @@ public final class PointFreeFormDecoder: Swift.Decoder {
     }
 
     public func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-        guard case let .unkeyed(container) = self.container else {
+        switch self.container {
+        case let .unkeyed(container):
+            return UnkeyedContainer(decoder: self, container: container, codingPath: self.codingPath)
+        case let .singleValue(value):
+            // For strategies like accumulateValues, treat a single value as an array with one element
+            if self.parsingStrategy.handleSingleValue {
+                let container = [Container.singleValue(value)]
+                return UnkeyedContainer(decoder: self, container: container, codingPath: self.codingPath)
+            } else {
+                throw Error.decodingError("Expected unkeyed container, got \(self.container)", self.codingPath)
+            }
+        default:
             throw Error.decodingError("Expected unkeyed container, got \(self.container)", self.codingPath)
         }
-        return UnkeyedContainer(decoder: self, container: container, codingPath: self.codingPath)
     }
 
     public func singleValueContainer() throws -> SingleValueDecodingContainer {
@@ -803,7 +808,38 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         }
     }
 
-    public enum ParsingStrategy {
+    /// A strategy for parsing URL form data into containers.
+    ///
+    /// You can use one of the built-in strategies or create your own custom strategy.
+    ///
+    /// ## Built-in Strategies
+    /// - ``accumulateValues``: Accumulates multiple values with the same key
+    /// - ``brackets``: Parses bracketed keys for nested structures (empty brackets for arrays)
+    /// - ``bracketsWithIndices``: Parses bracketed keys with indices for ordered arrays
+    ///
+    /// ## Custom Strategies
+    /// You can create custom strategies by providing your own parsing logic:
+    /// ```swift
+    /// extension PointFreeFormDecoder.ParsingStrategy {
+    ///     static let customStrategy = ParsingStrategy { query in
+    ///         // Your custom parsing logic here
+    ///         // Return a Container
+    ///     }
+    /// }
+    /// ```
+    public struct ParsingStrategy: Sendable {
+        internal let parse: @Sendable (String) -> Container
+        internal let handleSingleValue: Bool
+        
+        /// Creates a custom parsing strategy.
+        /// - Parameters:
+        ///   - parse: A closure that takes a query string and returns a Container.
+        ///   - handleSingleValue: Whether to handle single values specially (default: false).
+        public init(parse: @escaping @Sendable (String) -> Container, handleSingleValue: Bool = false) {
+            self.parse = parse
+            self.handleSingleValue = handleSingleValue
+        }
+        
         /// A parsing strategy that accumulates values when multiple keys are provided.
         ///
         ///     ids=1&ids=2
@@ -813,12 +849,10 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         /// given.
         ///
         /// - Note: This parsing strategy is "flat" and cannot decode deeper structures.
-        case accumulateValues
-
-        /// A parsing strategy that uses a custom function to produce a container for decoding.
-        ///
-        /// The custom function takes a query string and produces a container for decoding.
-        case custom((String) -> Container)
+        public static let accumulateValues = ParsingStrategy(
+            parse: PointFreeFormDecoder.accumulateValuesParser,
+            handleSingleValue: true
+        )
 
         /// A parsing strategy that uses keys with a bracketed suffix to produce nested structures.
         ///
@@ -839,7 +873,9 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         ///
         /// - Note: Unkeyed brackets do not specify collection indices, so they cannot accumulate complex
         ///   structures by using multiple keys. See `bracketsWithIndices` as an alternative parsing strategy.
-        nonisolated(unsafe) public static let brackets = custom(parse(isArray: { $0.isEmpty }))
+        public static let brackets = ParsingStrategy(
+            parse: PointFreeFormDecoder.parse(isArray: { $0.isEmpty })
+        )
 
         /// A parsing strategy that uses keys with a bracketed suffix to produce nested structures.
         ///
@@ -857,7 +893,15 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         ///
         ///     user[pets][0][id]=1&user[pets][0][name]=Fido
         ///     // Parsed as ["user": ["pets": [["id": "1"], ["name": "Fido"]]]]
-        nonisolated(unsafe) public static let bracketsWithIndices = custom(parse(isArray: { Int($0) != nil }, sort: true))
+        public static let bracketsWithIndices = ParsingStrategy(
+            parse: PointFreeFormDecoder.parse(isArray: { Int($0) != nil }, sort: true)
+        )
+        
+        /// Creates a custom parsing strategy with a custom function.
+        /// This is provided for backward compatibility.
+        public static func custom(_ parseFunction: @escaping @Sendable (String) -> Container) -> ParsingStrategy {
+            return ParsingStrategy(parse: parseFunction)
+        }
     }
 }
 
@@ -901,10 +945,11 @@ private let iso8601DateFormatterWithoutMilliseconds: DateFormatter = {
     return formatted
 }()
 
-private func parse(isArray: @escaping (String) -> Bool, sort: Bool = false) -> (String)
--> PointFreeFormDecoder.Container {
+private extension PointFreeFormDecoder {
+    @Sendable
+    static func parse(isArray: @escaping @Sendable (String) -> Bool, sort: Bool = false) -> @Sendable (String) -> Container {
 
-    func parseHelp(_ container: inout PointFreeFormDecoder.Container, _ path: [String], _ value: String) {
+    @Sendable func parseHelp(_ container: inout PointFreeFormDecoder.Container, _ path: [String], _ value: String) {
         switch container {
         case .keyed(let originalParams):
             var params = originalParams
@@ -1011,10 +1056,23 @@ private func parse(isArray: @escaping (String) -> Bool, sort: Bool = false) -> (
 
         return params
     }
-}
-
-private func parse(query: String) -> [(String, String?)] {
-    return pairs(query)
+    }
+    
+    @Sendable
+    static func accumulateValuesParser(_ query: String) -> Container {
+        var params: [String: Container] = [:]
+        for (name, value) in pairs(query) {
+            if var values = params[name]?.values {
+                values.append(.singleValue(value ?? ""))
+                params[name] = .unkeyed(values)
+            } else if params[name] != nil {
+                params[name] = .unkeyed([params[name]!, .singleValue(value ?? "")])
+            } else {
+                params[name] = .singleValue(value ?? "")
+            }
+        }
+        return .keyed(params)
+    }
 }
 
 private func pairs(_ query: String, sort: Bool = false) -> [(String, String?)] {
@@ -1031,16 +1089,6 @@ private func pairs(_ query: String, sort: Bool = false) -> [(String, String?)] {
         }
 
     return sort ? pairs.sorted { $0.name < $1.name } : pairs
-}
-
-private func accumulateValues(_ query: String) -> PointFreeFormDecoder.Container {
-    var params: [String: PointFreeFormDecoder.Container] = [:]
-    for (name, value) in pairs(query) {
-        var values = params[name]?.values ?? []
-        values.append(.singleValue(value ?? ""))
-        params[name] = .unkeyed(values)
-    }
-    return .keyed(params)
 }
 
 private let truths: Set<String> = ["1", "true"]

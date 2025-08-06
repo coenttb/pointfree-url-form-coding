@@ -392,56 +392,93 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         }
     }
     
-    public enum EncodingStrategy {
+    /// A strategy for encoding arrays in URL form data.
+    ///
+    /// You can use one of the built-in strategies or create your own custom strategy.
+    ///
+    /// ## Built-in Strategies
+    /// - ``accumulateValues``: Repeats keys for array values (tags=swift&tags=ios)
+    /// - ``brackets``: Uses empty brackets (tags[]=swift&tags[]=ios)
+    /// - ``bracketsWithIndices``: Uses indexed brackets (tags[0]=swift&tags[1]=ios)
+    ///
+    /// ## Custom Strategies
+    /// You can create custom strategies by providing your own encoding logic:
+    /// ```swift
+    /// extension PointFreeFormEncoder.EncodingStrategy {
+    ///     static let customStrategy = EncodingStrategy { container, prefix in
+    ///         // Your custom encoding logic here
+    ///     }
+    /// }
+    /// ```
+    public struct EncodingStrategy: Sendable {
+        internal let encode: @Sendable (Container, String) -> String
+        
+        /// Creates a custom encoding strategy.
+        /// - Parameter encode: A closure that takes a container and prefix, and returns the encoded string.
+        public init(encode: @escaping @Sendable (Container, String) -> String) {
+            self.encode = encode
+        }
+        
         /// Accumulate values strategy encodes arrays as repeated keys
         /// Example: tags=swift&tags=ios&tags=server
-        case accumulateValues
+        public static let accumulateValues = EncodingStrategy { container, prefix in
+            serializeWithStrategy(container, prefix: prefix, arrayHandler: .accumulate)
+        }
         
         /// Brackets strategy encodes arrays with empty brackets
         /// Example: tags[]=swift&tags[]=ios&tags[]=server
-        case brackets
+        public static let brackets = EncodingStrategy { container, prefix in
+            serializeWithStrategy(container, prefix: prefix, arrayHandler: .brackets)
+        }
         
         /// Brackets with indices strategy encodes arrays with indexed brackets
         /// Example: tags[0]=swift&tags[1]=ios&tags[2]=server
-        case bracketsWithIndices
+        public static let bracketsWithIndices = EncodingStrategy { container, prefix in
+            serializeWithStrategy(container, prefix: prefix, arrayHandler: .bracketsWithIndices)
+        }
     }
 }
 
 private func serialize(_ container: PointFreeFormEncoder.Container, strategy: PointFreeFormEncoder.EncodingStrategy, prefix: String = "") -> String {
+    return strategy.encode(container, prefix)
+}
+
+// Helper enum for array handling strategies
+private enum ArrayHandler {
+    case accumulate
+    case brackets
+    case bracketsWithIndices
+}
+
+// Helper function that implements the core serialization logic
+private func serializeWithStrategy(_ container: PointFreeFormEncoder.Container, prefix: String, arrayHandler: ArrayHandler) -> String {
     switch container {
     case let .keyed(dict):
         return dict.sorted(by: { $0.key < $1.key }).map { key, value in
-            let newPrefix: String
-            switch strategy {
-            case .accumulateValues:
-                // For accumulate values, don't add brackets for nested objects
-                newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
-            case .brackets, .bracketsWithIndices:
-                newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
-            }
-            return serialize(value, strategy: strategy, prefix: newPrefix)
+            let newPrefix = prefix.isEmpty ? key : "\(prefix)[\(key)]"
+            return serializeWithStrategy(value, prefix: newPrefix, arrayHandler: arrayHandler)
         }.joined(separator: "&")
 
     case let .unkeyed(array):
-        switch strategy {
-        case .accumulateValues:
+        switch arrayHandler {
+        case .accumulate:
             // For accumulate values, repeat the key for each value
             return array.map { value in
-                serialize(value, strategy: strategy, prefix: prefix)
+                serializeWithStrategy(value, prefix: prefix, arrayHandler: arrayHandler)
             }.joined(separator: "&")
             
         case .brackets:
             // For brackets, use empty bracket notation
             return array.map { value in
                 let newPrefix = "\(prefix)[]"
-                return serialize(value, strategy: strategy, prefix: newPrefix)
+                return serializeWithStrategy(value, prefix: newPrefix, arrayHandler: arrayHandler)
             }.joined(separator: "&")
             
         case .bracketsWithIndices:
             // For brackets with indices, use indexed notation
             return array.enumerated().map { idx, value in
                 let newPrefix = "\(prefix)[\(idx)]"
-                return serialize(value, strategy: strategy, prefix: newPrefix)
+                return serializeWithStrategy(value, prefix: newPrefix, arrayHandler: arrayHandler)
             }.joined(separator: "&")
         }
 

@@ -78,7 +78,7 @@ struct CustomStrategyTests {
     @Test("Custom parsing strategy with special delimiter")
     func testCustomParsingStrategy() throws {
         // Create a custom strategy that uses pipe | as separator
-        let customStrategy: (String) -> PointFreeFormDecoder.Container = { query in
+        let customStrategy: @Sendable (String) -> PointFreeFormDecoder.Container = { query in
             var params: [String: PointFreeFormDecoder.Container] = [:]
             let pairs = query.split(separator: "|")
             
@@ -116,7 +116,7 @@ struct CustomStrategyTests {
     @Test("Custom strategy with array support")
     func testCustomStrategyWithArrays() throws {
         // Custom strategy that handles comma-separated arrays
-        let customStrategy: (String) -> PointFreeFormDecoder.Container = { query in
+        let customStrategy: @Sendable (String) -> PointFreeFormDecoder.Container = { query in
             var params: [String: PointFreeFormDecoder.Container] = [:]
             let pairs = query.split(separator: "&")
             
