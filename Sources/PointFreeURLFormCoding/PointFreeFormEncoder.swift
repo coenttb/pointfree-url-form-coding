@@ -340,8 +340,9 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             if let strValue = value as? String {
                 try encode(strValue)
             } else {
-                let encoded = String(describing: value).addingPercentEncoding(withAllowedCharacters: .urlQueryParamAllowed) ?? String(describing: value)
-                self.encoder.container = .singleValue(encoded)
+                // Instead of using String(describing:) which can fail for certain types,
+                // we need to properly encode the value through the encoder
+                self.encoder.container = try self.encoder.box(value)
             }
         }
     }
