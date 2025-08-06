@@ -69,13 +69,13 @@ public final class PointFreeFormDecoder: Swift.Decoder {
     public private(set) var codingPath: [CodingKey] = []
     public var dataDecodingStrategy: PointFreeFormDecoder.DataDecodingStrategy
     public var dateDecodingStrategy: PointFreeFormDecoder.DateDecodingStrategy
-    public var parsingStrategy: ParsingStrategy
+    public var parsingStrategy: PointFreeFormDecoder.ParsingStrategy
     public let userInfo: [CodingUserInfoKey: Any] = [:]
 
     public init(
         dataDecodingStrategy: PointFreeFormDecoder.DataDecodingStrategy = .deferredToData,
         dateDecodingStrategy: PointFreeFormDecoder.DateDecodingStrategy = .deferredToDate,
-        parsingStrategy: ParsingStrategy = .accumulateValues
+        parsingStrategy: PointFreeFormDecoder.ParsingStrategy = .accumulateValues
     ) {
         self.dataDecodingStrategy = dataDecodingStrategy
         self.dateDecodingStrategy = dateDecodingStrategy
@@ -105,20 +105,12 @@ public final class PointFreeFormDecoder: Swift.Decoder {
             throw Error.decodingError("Expected string data, got \(value)", self.codingPath)
         }
 
-        switch self.dataDecodingStrategy {
-        case .deferredToData:
+        // Decode the data using the strategy
+        guard let data = self.dataDecodingStrategy.decode(string) else {
+            // If decode returns nil, it means we should use deferredToData
             return try Data(from: self)
-        case .base64:
-            guard let data = Data(base64Encoded: string) else {
-                throw Error.decodingError("Expected base64-encoded data, got \(string)", self.codingPath)
-            }
-            return data
-        case let .custom(strategy):
-            guard let data = strategy(string) else {
-                throw Error.decodingError("Failed strategy when decoding data from \(string)", self.codingPath)
-            }
-            return data
         }
+        return data
     }
 
     private func unbox(_ value: Container, as type: Date.Type) throws -> Date {
@@ -760,10 +752,56 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         }
     }
 
-    public enum DataDecodingStrategy {
-        case deferredToData
-        case base64
-        case custom((String) -> Data?)
+    /// A strategy for decoding Data values from URL form data.
+    ///
+    /// You can use one of the built-in strategies or create your own custom strategy.
+    ///
+    /// ## Built-in Strategies
+    /// - ``deferredToData``: Uses Data's default Codable implementation
+    /// - ``base64``: Decodes data from base64 string
+    ///
+    /// ## Custom Strategies
+    /// You can create custom strategies by providing your own decoding logic:
+    /// ```swift
+    /// extension PointFreeFormDecoder.DataDecodingStrategy {
+    ///     static let hexDecoding = DataDecodingStrategy { string in
+    ///         // Convert hex string to Data
+    ///         var data = Data()
+    ///         var index = string.startIndex
+    ///         while index < string.endIndex {
+    ///             let nextIndex = string.index(index, offsetBy: 2, limitedBy: string.endIndex) ?? string.endIndex
+    ///             if let byte = UInt8(String(string[index..<nextIndex]), radix: 16) {
+    ///                 data.append(byte)
+    ///             }
+    ///             index = nextIndex
+    ///         }
+    ///         return data
+    ///     }
+    /// }
+    /// ```
+    public struct DataDecodingStrategy: Sendable {
+        internal let decode: @Sendable (String) -> Data?
+        
+        /// Creates a custom data decoding strategy.
+        /// - Parameter decode: A closure that takes a string and returns the decoded Data.
+        public init(decode: @escaping @Sendable (String) -> Data?) {
+            self.decode = decode
+        }
+        
+        /// Defers to Data's default Codable implementation
+        public static let deferredToData = DataDecodingStrategy { _ in
+            nil // Always return nil to signal deferred implementation
+        }
+        
+        /// Decodes data from base64 string
+        public static let base64 = DataDecodingStrategy { string in
+            Data(base64Encoded: string)
+        }
+        
+        /// Creates a custom data decoding strategy
+        public static func custom(_ strategy: @escaping @Sendable (String) -> Data?) -> DataDecodingStrategy {
+            DataDecodingStrategy(decode: strategy)
+        }
     }
 
     public enum DateDecodingStrategy {

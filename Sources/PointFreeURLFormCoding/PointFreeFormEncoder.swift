@@ -52,13 +52,13 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     public private(set) var codingPath: [CodingKey] = []
     public var dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy
     public var dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy
-    public var encodingStrategy: EncodingStrategy
+    public var encodingStrategy: PointFreeFormEncoder.EncodingStrategy
     public let userInfo: [CodingUserInfoKey: Any] = [:]
 
     public init(
         dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy = .deferredToData,
         dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy = .deferredToDate,
-        encodingStrategy: EncodingStrategy = .bracketsWithIndices
+        encodingStrategy: PointFreeFormEncoder.EncodingStrategy = .bracketsWithIndices
     ) {
         self.dataEncodingStrategy = dataEncodingStrategy
         self.dateEncodingStrategy = dateEncodingStrategy
@@ -85,7 +85,11 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             return .singleValue(String(describing: decimal))
         }
 
-        let encoder = PointFreeFormEncoder()
+        let encoder = PointFreeFormEncoder(
+            dataEncodingStrategy: self.dataEncodingStrategy,
+            dateEncodingStrategy: self.dateEncodingStrategy,
+            encodingStrategy: self.encodingStrategy
+        )
         try value.encode(to: encoder)
         guard let container = encoder.container else {
             throw Error.encodingError("No container found", encoder.codingPath)
@@ -96,7 +100,11 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     private func box(_ date: Date) throws -> Container {
         switch self.dateEncodingStrategy {
         case .deferredToDate:
-            let encoder = PointFreeFormEncoder()
+            let encoder = PointFreeFormEncoder(
+                dataEncodingStrategy: self.dataEncodingStrategy,
+                dateEncodingStrategy: self.dateEncodingStrategy,
+                encodingStrategy: self.encodingStrategy
+            )
             try date.encode(to: encoder)
             guard let container = encoder.container else {
                 throw Error.encodingError("No container found", encoder.codingPath)
@@ -116,18 +124,18 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     }
 
     private func box(_ data: Data) throws -> Container {
-        switch self.dataEncodingStrategy {
-        case .deferredToData:
+        // Check if using deferredToData by looking for the special marker
+        let result = self.dataEncodingStrategy.encode(data)
+        
+        if result == "__DEFERRED_TO_DATA__" {
             let encoder = PointFreeFormEncoder()
             try data.encode(to: encoder)
             guard let container = encoder.container else {
                 throw Error.encodingError("No container found", encoder.codingPath)
             }
             return container
-        case .base64:
-            return .singleValue(data.base64EncodedString())
-        case let .custom(strategy):
-            return .singleValue(strategy(data))
+        } else {
+            return .singleValue(result)
         }
     }
 
@@ -344,10 +352,47 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         }
     }
 
-    public enum DataEncodingStrategy {
-        case deferredToData
-        case base64
-        case custom((Data) -> String)
+    /// A strategy for encoding Data values in URL form data.
+    ///
+    /// You can use one of the built-in strategies or create your own custom strategy.
+    ///
+    /// ## Built-in Strategies
+    /// - ``deferredToData``: Uses Data's default Codable implementation
+    /// - ``base64``: Encodes data as base64 string
+    ///
+    /// ## Custom Strategies
+    /// You can create custom strategies by providing your own encoding logic:
+    /// ```swift
+    /// extension PointFreeFormEncoder.DataEncodingStrategy {
+    ///     static let hexEncoding = DataEncodingStrategy { data in
+    ///         data.map { String(format: "%02x", $0) }.joined()
+    ///     }
+    /// }
+    /// ```
+    public struct DataEncodingStrategy: Sendable {
+        internal let encode: @Sendable (Data) -> String
+        
+        /// Creates a custom data encoding strategy.
+        /// - Parameter encode: A closure that takes Data and returns the encoded string.
+        public init(encode: @escaping @Sendable (Data) -> String) {
+            self.encode = encode
+        }
+        
+        /// Defers to Data's default Codable implementation
+        public static let deferredToData = DataEncodingStrategy { data in
+            // Return a special marker that indicates deferred encoding
+            "__DEFERRED_TO_DATA__"
+        }
+        
+        /// Encodes data as base64 string
+        public static let base64 = DataEncodingStrategy { data in
+            data.base64EncodedString()
+        }
+        
+        /// Creates a custom data encoding strategy
+        public static func custom(_ strategy: @escaping @Sendable (Data) -> String) -> DataEncodingStrategy {
+            DataEncodingStrategy(encode: strategy)
+        }
     }
 
     public enum DateEncodingStrategy {
