@@ -1,0 +1,46 @@
+PointFree URL Form Coding
+==========================
+
+This software contains code originally developed by Point-Free, Inc. and subsequent 
+improvements and additions by Coen ten Thije Boonkkamp.
+
+Original Work (Copyright 2017 Point-Free, Inc.):
+-------------------------------------------------
+- Core PointFreeFormEncoder implementation
+- Core PointFreeFormDecoder implementation  
+- Basic URL form encoding/decoding functionality
+- Original parsing strategies
+
+Improvements and Additions (Copyright 2025 Coen ten Thije Boonkkamp):
+----------------------------------------------------------------------
+As of commit 20c0617 and onwards:
+
+Core Improvements:
+- Fixed optional array decoding with bracketsWithIndices strategy
+- Fixed nested array parsing with bracketsWithIndices strategy
+- Added encoding strategies (accumulateValues, bracketsWithIndices) to encoder
+- Added special handling for Decimal type encoding/decoding
+- Fixed brackets (without indices) strategy implementation
+- Improved error messages with CustomStringConvertible conformance
+- Added strategy auto-detection functionality
+- Added PointFreeFormDecoder.decodeWithAutoDetection for automatic strategy detection
+
+Test Suite:
+- Comprehensive test suite with 132+ tests covering:
+  - Optional array decoding tests
+  - Round-trip encoding/decoding tests
+  - Strategy mismatch tests
+  - Thread safety tests
+  - URLComponents integration tests
+  - Decimal and NSNumber type tests
+  - Custom parsing strategy tests
+  - Backwards compatibility tests
+  - Error ergonomics tests
+  - Auto-detection tests
+  - Performance and memory tests
+  - Security tests
+
+All improvements maintain backward compatibility with the original Point-Free implementation
+while significantly enhancing functionality, reliability, and developer experience.
+
+This software is licensed under the MIT License. See LICENSE file for details.
