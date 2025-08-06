@@ -76,6 +76,9 @@ public final class PointFreeFormEncoder: Swift.Encoder {
             return try self.box(date)
         } else if let data = value as? Data {
             return try self.box(data)
+        } else if let decimal = value as? Decimal {
+            // Handle Decimal specially to avoid its complex internal encoding
+            return .singleValue(String(describing: decimal))
         }
 
         let encoder = PointFreeFormEncoder()

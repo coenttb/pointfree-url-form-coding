@@ -169,9 +169,23 @@ public final class PointFreeFormDecoder: Swift.Decoder {
             return try self.unbox(value, as: Data.self) as! T
         } else if type == Date.self {
             return try self.unbox(value, as: Date.self) as! T
+        } else if type == Decimal.self {
+            return try self.unbox(value, as: Decimal.self) as! T
         } else {
             return try T(from: self)
         }
+    }
+    
+    private func unbox(_ value: Container, as type: Decimal.Type) throws -> Decimal {
+        guard let string = unbox(value) else {
+            throw Error.decodingError("Expected string decimal, got \(value)", self.codingPath)
+        }
+        
+        guard let decimal = Decimal(string: string) else {
+            throw Error.decodingError("Invalid decimal string: \(string)", self.codingPath)
+        }
+        
+        return decimal
     }
 
     public func container<Key>(keyedBy type: Key.Type) throws
@@ -286,6 +300,10 @@ public final class PointFreeFormDecoder: Swift.Decoder {
 
         func decode(_ type: String.Type, forKey key: Key) throws -> String {
             return try self.unwrap(key, id)
+        }
+        
+        func decode(_ type: Decimal.Type, forKey key: Key) throws -> Decimal {
+            return try self.unwrap(key) { Decimal(string: $0) ?? Decimal() }
         }
 
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T: Decodable {
@@ -408,6 +426,14 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         func decodeIfPresent(_ type: String.Type, forKey key: Key) throws -> String? {
             guard self.contains(key) else { return nil }
             return try self.decode(String.self, forKey: key)
+        }
+        
+        func decodeIfPresent(_ type: Decimal.Type, forKey key: Key) throws -> Decimal? {
+            guard self.contains(key) else { return nil }
+            if let value = self.container[key.stringValue].flatMap(self.decoder.unbox), value.isEmpty {
+                return nil
+            }
+            return try self.decode(Decimal.self, forKey: key)
         }
         
         func decodeIfPresent<T>(_ type: T.Type, forKey key: Key) throws -> T? where T: Decodable {
@@ -560,6 +586,10 @@ public final class PointFreeFormDecoder: Swift.Decoder {
         mutating func decode(_ type: String.Type) throws -> String {
             return try self.unwrap(id)
         }
+        
+        mutating func decode(_ type: Decimal.Type) throws -> Decimal {
+            return try self.unwrap { Decimal(string: $0) ?? Decimal() }
+        }
 
         mutating func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
             guard !self.isAtEnd else { throw Error.decodingError("Unkeyed container is at end", self.codingPath) }
@@ -695,6 +725,10 @@ public final class PointFreeFormDecoder: Swift.Decoder {
 
         func decode(_ type: String.Type) throws -> String {
             return try self.unwrap(id)
+        }
+        
+        func decode(_ type: Decimal.Type) throws -> Decimal {
+            return try self.unwrap { Decimal(string: $0) ?? Decimal() }
         }
 
         func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
@@ -867,24 +901,42 @@ private func parse(isArray: @escaping (String) -> Bool, sort: Bool = false) -> (
                 values.append(valueContainer)
                 params[key] = .unkeyed(values)
             } else if isArray(path[1]) {
-                // Handle indexed arrays properly
-                let index = Int(path[1]) ?? 0
-                var values = params[key]?.values ?? []
-                
-                // Expand array if needed
-                while values.count <= index {
-                    values.append(.keyed([:]))
-                }
-                
-                // If we have more path components, recurse into the specific index
-                if path.count > 2 {
-                    parseHelp(&values[index], Array(path[2...]), value)
+                // Check if it's an empty bracket (accumulate) or indexed bracket
+                if path[1].isEmpty {
+                    // Empty brackets - accumulate values
+                    var values = params[key]?.values ?? []
+                    
+                    if path.count > 2 {
+                        // Create a new keyed container for this array element
+                        var newContainer = PointFreeFormDecoder.Container.keyed([:])
+                        parseHelp(&newContainer, Array(path[2...]), value)
+                        values.append(newContainer)
+                    } else {
+                        // This is a direct value
+                        values.append(.singleValue(value))
+                    }
+                    
+                    params[key] = .unkeyed(values)
                 } else {
-                    // This is the final value
-                    values[index] = .singleValue(value)
+                    // Indexed arrays - use specific index
+                    let index = Int(path[1]) ?? 0
+                    var values = params[key]?.values ?? []
+                    
+                    // Expand array if needed
+                    while values.count <= index {
+                        values.append(.keyed([:]))
+                    }
+                    
+                    // If we have more path components, recurse into the specific index
+                    if path.count > 2 {
+                        parseHelp(&values[index], Array(path[2...]), value)
+                    } else {
+                        // This is the final value
+                        values[index] = .singleValue(value)
+                    }
+                    
+                    params[key] = .unkeyed(values)
                 }
-                
-                params[key] = .unkeyed(values)
             } else {
                 var values = PointFreeFormDecoder.Container.keyed(params[key]?.params ?? [:])
                 parseHelp(&values, Array(path[1...]), value)
