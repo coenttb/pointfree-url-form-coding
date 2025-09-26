@@ -58,7 +58,7 @@ public final class PointFreeFormEncoder: Swift.Encoder {
     public init(
         dataEncodingStrategy: PointFreeFormEncoder.DataEncodingStrategy = .deferredToData,
         dateEncodingStrategy: PointFreeFormEncoder.DateEncodingStrategy = .deferredToDate,
-        arrayEncodingStrategy: PointFreeFormEncoder.ArrayEncodingStrategy = .bracketsWithIndices
+        arrayEncodingStrategy: PointFreeFormEncoder.ArrayEncodingStrategy = .accumulateValues
     ) {
         self.dataEncodingStrategy = dataEncodingStrategy
         self.dateEncodingStrategy = dateEncodingStrategy
@@ -428,12 +428,12 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         
         /// Encodes dates as seconds since 1970
         public static let secondsSince1970 = DateEncodingStrategy { date in
-            String(date.timeIntervalSince1970)
+            String(Int(date.timeIntervalSince1970))
         }
         
         /// Encodes dates as milliseconds since 1970
         public static let millisecondsSince1970 = DateEncodingStrategy { date in
-            String(date.timeIntervalSince1970 * 1000)
+            String(Int(date.timeIntervalSince1970 * 1000))
         }
         
         /// Encodes dates in ISO8601 format
