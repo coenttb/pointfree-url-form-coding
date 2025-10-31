@@ -322,7 +322,7 @@ struct FormEncoderTests {
 
         @Test("Encodes data as array by default")
         func testEncodesDataAsArrayByDefault() throws {
-            let encoder = PointFreeFormEncoder()
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
             let testData = "Hello".data(using: .utf8)! // Shorter for clearer testing
             let user = UserWithData(
                 name: "Maya",
@@ -383,9 +383,8 @@ struct FormEncoderTests {
 
         @Test("Arrays round-trip correctly with bracketsWithIndices strategy")
         func testArraysRoundTripCorrectly() throws {
-            let encoder = PointFreeFormEncoder()
-            let decoder = PointFreeFormDecoder()
-            decoder.arrayParsingStrategy = .bracketsWithIndices // Use compatible parsing strategy
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
+            let decoder = PointFreeFormDecoder(arrayParsingStrategy: .bracketsWithIndices)
 
             let original = UserWithArrays(
                 name: "Penny",

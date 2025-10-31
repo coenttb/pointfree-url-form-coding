@@ -69,7 +69,7 @@ struct URLFormCodingRoundTripTests {
     
     @Test("Optional array round-trip with bracketsWithIndices")
     func testOptionalArrayRoundTripWithBracketsWithIndices() throws {
-        let encoder = PointFreeFormEncoder()
+        let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
         let decoder = PointFreeFormDecoder(
             arrayParsingStrategy: .bracketsWithIndices
         )
@@ -90,7 +90,7 @@ struct URLFormCodingRoundTripTests {
     
     @Test("Message request round-trip with bracketsWithIndices (Mailgun scenario)")
     func testMessageRequestRoundTripWithBracketsWithIndices() throws {
-        let encoder = PointFreeFormEncoder()
+        let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
         let decoder = PointFreeFormDecoder(
             arrayParsingStrategy: .bracketsWithIndices
         )
@@ -166,7 +166,7 @@ struct URLFormCodingRoundTripTests {
     
     @Test("Mixed types with optional arrays round-trip")
     func testMixedTypesRoundTrip() throws {
-        let encoder = PointFreeFormEncoder()
+        let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
         let decoder = PointFreeFormDecoder(
             arrayParsingStrategy: .bracketsWithIndices
         )
@@ -215,7 +215,7 @@ struct URLFormCodingRoundTripTests {
     
     @Test("Arrays fail with mismatched strategies")
     func testArraysFailWithMismatchedStrategies() throws {
-        let encoder = PointFreeFormEncoder()
+        let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
         // Using default decoder (accumulateValues) when encoder produces bracketed indices
         let decoder = PointFreeFormDecoder()
         
@@ -249,7 +249,8 @@ struct URLFormCodingRoundTripTests {
         }
         
         let encoder = PointFreeFormEncoder(
-            dateEncodingStrategy: .secondsSince1970
+            dateEncodingStrategy: .secondsSince1970,
+            arrayEncodingStrategy: .bracketsWithIndices
         )
         let decoder = PointFreeFormDecoder(
             dateDecodingStrategy: .secondsSince1970,
@@ -282,11 +283,11 @@ struct URLFormCodingRoundTripTests {
             let items: [Inner]?
         }
         
-        let encoder = PointFreeFormEncoder()
+        let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
         let decoder = PointFreeFormDecoder(
             arrayParsingStrategy: .bracketsWithIndices
         )
-        
+
         let original = NestedModel(
             name: "Parent",
             items: [

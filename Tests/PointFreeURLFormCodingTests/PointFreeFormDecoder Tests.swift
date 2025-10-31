@@ -805,9 +805,8 @@ struct FormDecoderTests {
 
         @Test("Round-trips arrays with matching strategies")
         func testRoundTripsArraysWithMatchingStrategies() throws {
-            let encoder = PointFreeFormEncoder()
-            let decoder = PointFreeFormDecoder()
-            decoder.arrayParsingStrategy = .bracketsWithIndices
+            let encoder = PointFreeFormEncoder(arrayEncodingStrategy: .bracketsWithIndices)
+            let decoder = PointFreeFormDecoder(arrayParsingStrategy: .bracketsWithIndices)
 
             let original = UserWithArrays(
                 name: "Array User",
