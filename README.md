@@ -11,6 +11,12 @@ A fork of Point-Free's swift-web/UrlFormEncoding
 - **Swift**: 5.9+ (Full Swift 6 support)
 - **Dependencies**: None (pure Swift implementation)
 
+## Related Packages
+
+### Used By
+
+- [swift-url-form-coding](https://github.com/coenttb/swift-url-form-coding): A Swift package for type-safe web form encoding and decoding.
+
 ## Related Projects
 
 ### Fork
