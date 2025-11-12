@@ -35,8 +35,8 @@ struct FormEncoderTests {
             #expect(query.contains("age="))
             #expect(query.contains("isActive="))
 
-            // Check specific values (URL encoded)
-            #expect(query.contains("name=John%20Doe"))
+            // Check specific values (WHATWG URL encoded - space as +)
+            #expect(query.contains("name=John+Doe"))
             #expect(query.contains("age=30"))
             #expect(query.contains("isActive=true"))
         }
@@ -49,8 +49,8 @@ struct FormEncoderTests {
             let data = try encoder.encode(user)
             let queryString = String(data: data, encoding: .utf8)!
 
-            // Should properly encode ampersand
-            #expect(queryString.contains("John%20%26%20Jane"))
+            // Should properly encode ampersand (WHATWG URL encoding - space as +)
+            #expect(queryString.contains("John+%26+Jane"))
         }
 
         @Test("Handles empty strings")
@@ -576,12 +576,16 @@ struct FormEncoderTests {
             let data = try encoder.encode(user)
             let queryString = String(data: data, encoding: .utf8)!
 
-            // Unreserved characters should not be encoded: A-Z a-z 0-9 - . _ ~
-            #expect(queryString.contains("abc123-_.~"))
+            // WHATWG unreserved characters (not encoded): A-Z a-z 0-9 - . _ *
+            // Note: ~ is encoded in WHATWG (unlike RFC 3986)
+            #expect(queryString.contains("abc123-_."))  // these should be unencoded
+            #expect(queryString.contains("*"))          // * should be unencoded
+            #expect(!queryString.contains("%2A"))       // * should NOT be encoded as %2A
 
-            // Reserved characters should be encoded: : / ? # [ ] @ ! $ & ' ( ) * + , ; =
-            #expect(!queryString.contains(":/?#[]@!$&'()*+,;="))
-            #expect(queryString.contains("%3A") || queryString.contains("%2F"))
+            // Characters that should be encoded (including ~)
+            #expect(queryString.contains("%7E"))  // ~ should be encoded
+            #expect(queryString.contains("%3A"))  // : should be encoded
+            #expect(queryString.contains("%2F"))  // / should be encoded
         }
 
         @Test("Correctly encodes space characters")
@@ -592,9 +596,9 @@ struct FormEncoderTests {
             let data = try encoder.encode(user)
             let queryString = String(data: data, encoding: .utf8)!
 
-            // Spaces should be encoded as %20, not +
-            #expect(queryString.contains("hello%20world"))
-            #expect(!queryString.contains("hello+world"))
+            // WHATWG URL encoding: Spaces should be encoded as +
+            #expect(queryString.contains("hello+world"))
+            #expect(!queryString.contains("hello%20world"))
         }
     }
 

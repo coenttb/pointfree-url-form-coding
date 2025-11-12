@@ -1,4 +1,5 @@
 import Foundation
+import WHATWG_URL_Encoding
 
 /// A decoder that converts URL-encoded form data to Swift Codable types.
 ///
@@ -1153,8 +1154,7 @@ private func pairs(_ query: String, sort: Bool = false) -> [(String, String?)] {
             let pairArray = pairString.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
                 .compactMap(
                     String.init
-                    >>> { $0.replacingOccurrences(of: "+", with: " ") }
-                    >>> { $0.removingPercentEncoding }
+                    >>> { WHATWG_URL_Encoding.percentDecode($0, plusAsSpace: true) }
                 )
             return (pairArray[0], pairArray.count == 2 ? pairArray[1] : nil)
         }

@@ -1,31 +1,31 @@
-// swift-tools-version:5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
 
-extension String {
-    static let urlFormCoding: Self = "PointFreeURLFormCoding"
-}
-
-extension Target.Dependency {
-    static var urlFormCoding: Self { .target(name: .urlFormCoding) }
-}
-
 let package = Package(
     name: "pointfree-url-form-coding",
-    products: [
-        .library(name: .urlFormCoding, targets: [.urlFormCoding])
+    platforms: [
+        .macOS(.v14),
+        .iOS(.v17),
+        .tvOS(.v17),
+        .watchOS(.v10)
     ],
-    dependencies: [],
+    products: [
+        .library(name: "PointFreeURLFormCoding", targets: ["PointFreeURLFormCoding"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/swift-standards/swift-whatwg-url-encoding", from: "0.1.0")
+    ],
     targets: [
         .target(
-            name: .urlFormCoding,
-            dependencies: []
+            name: "PointFreeURLFormCoding",
+            dependencies: [
+                .product(name: "WHATWG URL Encoding", package: "swift-whatwg-url-encoding")
+            ]
         ),
         .testTarget(
-            name: .urlFormCoding.tests,
-            dependencies: [.urlFormCoding]
+            name: "PointFreeURLFormCoding Tests",
+            dependencies: ["PointFreeURLFormCoding"]
         )
     ]
 )
-
-extension String { var tests: Self { self + " Tests" } }

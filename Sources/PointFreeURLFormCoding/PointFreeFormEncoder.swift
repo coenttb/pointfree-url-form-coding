@@ -1,4 +1,5 @@
 import Foundation
+import WHATWG_URL_Encoding
 
 /// An encoder that converts Swift Codable types to URL-encoded form data.
 ///
@@ -284,7 +285,7 @@ public final class PointFreeFormEncoder: Swift.Encoder {
         }
 
         mutating func encode(_ value: String) throws {
-            let encoded = value.addingPercentEncoding(withAllowedCharacters: .urlQueryParamAllowed) ?? value
+            let encoded = WHATWG_URL_Encoding.percentEncode(value, spaceAsPlus: true)
             self.encoder.container = .singleValue(encoded)
         }
 

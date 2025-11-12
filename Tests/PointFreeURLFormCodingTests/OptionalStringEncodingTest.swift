@@ -45,7 +45,7 @@ struct OptionalStringEncodingTests {
         let queryString2 = String(data: data2, encoding: .utf8)!
         print("With values result: \(queryString2)")
         #expect(queryString2.contains("role=user"))
-        #expect(queryString2.contains("description=Test%20description"))
+        #expect(queryString2.contains("description=Test+description"))
         #expect(queryString2.contains("kind=standard"))
         
         // Test with mixed (some nil, some with values)
@@ -59,7 +59,7 @@ struct OptionalStringEncodingTests {
         let queryString3 = String(data: data3, encoding: .utf8)!
         print("Mixed result: \(queryString3)")
         #expect(queryString3.contains("role=moderator"))
-        #expect(queryString3.contains("description=Another%20test"))
+        #expect(queryString3.contains("description=Another+test"))
     }
     
     @Test("Handles special characters in optional strings")
